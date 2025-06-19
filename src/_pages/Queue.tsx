@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react"
-import { useQuery } from "react-query"
-import ScreenshotQueue from "../components/Queue/ScreenshotQueue"
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery } from "react-query";
+import ScreenshotQueue from "../components/Queue/ScreenshotQueue";
+// import { Textarea } from "@/components/ui/textarea"; // Assuming a Textarea component
 import {
   Toast,
   ToastTitle,
@@ -20,7 +21,8 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     title: "",
     description: "",
     variant: "neutral"
-  })
+  });
+  const [customPrompt, setCustomPrompt] = useState<string>("");
 
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const [tooltipHeight, setTooltipHeight] = useState(0)
@@ -127,6 +129,12 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
     setTooltipHeight(height)
   }
 
+  useEffect(() => {
+    if (window.electronAPI && typeof window.electronAPI.setCustomPrompt === 'function') {
+      window.electronAPI.setCustomPrompt(customPrompt);
+    }
+  }, [customPrompt]);
+
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
       <div className="px-4 py-3">
@@ -146,6 +154,22 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
             screenshots={screenshots}
             onDeleteScreenshot={handleDeleteScreenshot}
           />
+          <div className="my-3 space-y-1">
+            <label
+              htmlFor="customPrompt"
+              className="text-sm font-medium text-white/90"
+            >
+              Custom Instructions/Prompt (Optional)
+            </label>
+            <textarea
+              id="customPrompt"
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="e.g., Explain this like I'm five, or focus on the data structures..."
+              className="w-full p-2 rounded-md bg-black/70 border border-white/20 text-white text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              rows={3}
+            />
+          </div>
           <QueueCommands
             screenshots={screenshots}
             onTooltipVisibilityChange={handleTooltipVisibilityChange}
@@ -153,7 +177,7 @@ const Queue: React.FC<QueueProps> = ({ setView }) => {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Queue
+export default Queue;

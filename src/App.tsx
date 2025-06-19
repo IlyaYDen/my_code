@@ -46,6 +46,13 @@ declare global {
       moveWindowLeft: () => Promise<void>
       moveWindowRight: () => Promise<void>
       quitApp: () => Promise<void>
+      setCustomPrompt: (prompt: string) => void;
+      // Add the new function for follow-up questions
+      sendFollowUp: (
+        followUpQuestion: string,
+        problemContext: any, // Consider defining a more specific type later if possible
+        solutionContext: any // Consider defining a more specific type later if possible
+      ) => Promise<{ text: string } | null>;
     }
   }
 }

@@ -12,6 +12,7 @@ export class AppState {
   private screenshotHelper: ScreenshotHelper
   public shortcutsHelper: ShortcutsHelper
   public processingHelper: ProcessingHelper
+  private customPrompt: string = ""; // Added this line
 
   // View management
   private view: "queue" | "solutions" = "queue"
@@ -183,6 +184,16 @@ export class AppState {
 
   public getHasDebugged(): boolean {
     return this.hasDebugged
+  }
+
+  // Added these methods
+  public setCustomPrompt(prompt: string): void {
+    this.customPrompt = prompt;
+    console.log(`Custom prompt set in AppState: "${prompt}"`); // For debugging
+  }
+
+  public getCustomPrompt(): string {
+    return this.customPrompt;
   }
 }
 
