@@ -96,11 +96,10 @@ export class ScreenshotHelper {
           exec(`screencapture -C "${screenshotPath}"`, (error, stdout, stderr) => {
             if (error) {
               console.error('Error using screencapture:', error);
-              // Attempt fallback to original method or reject
-              // For now, let's try to fallback to existing screenshot() if screencapture fails
-              screenshot({ filename: screenshotPath }).then(resolve).catch(reject);
-              // Alternatively, to strictly use screencapture and report error:
-              // return reject(error);
+              // Attempt fallback to original method
+              screenshot({ filename: screenshotPath })
+                .then(() => resolve()) // Corrected line: resolve called with no arguments
+                .catch(reject);
             } else {
               resolve();
             }
