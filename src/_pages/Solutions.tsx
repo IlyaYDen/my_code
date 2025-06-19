@@ -160,6 +160,12 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
 
   const [isResetting, setIsResetting] = useState(false)
 
+  // Follow-up state variables
+  const [followUpInput, setFollowUpInput] = useState<string>("");
+  const [showFollowUpInput, setShowFollowUpInput] = useState<boolean>(false);
+  const [isProcessingFollowUp, setIsProcessingFollowUp] = useState<boolean>(false);
+  const [conversationHistory, setConversationHistory] = useState<Array<{ speaker: 'user' | 'ai', text: string }>>([]);
+
   const { data: extraScreenshots = [], refetch } = useQuery<Array<{ path: string; preview: string }>, Error>(
     ["extras"],
     async () => {
@@ -204,6 +210,38 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
     }
   }
 
+  const handleSendFollowUp = async () => {
+    if (!followUpInput.trim()) return;
+
+    setIsProcessingFollowUp(true);
+    const currentQuestion = followUpInput;
+    setConversationHistory(prev => [...prev, { speaker: 'user', text: currentQuestion }]);
+    setFollowUpInput("");
+    setShowFollowUpInput(false); // Hide input area after sending
+
+    try {
+      const currentProblemContext = queryClient.getQueryData(["problem_statement"]) || problemStatementData;
+      const currentSolutionContext = queryClient.getQueryData(["solution"]) || solutionData;
+
+      const response = await window.electronAPI.sendFollowUp(
+        currentQuestion,
+        currentProblemContext,
+        currentSolutionContext
+      );
+
+      if (response && response.text) {
+        setConversationHistory(prev => [...prev, { speaker: 'ai', text: response.text }]);
+      } else {
+        showToast("Error", "AI did not return a valid response or an error occurred.", "error");
+      }
+    } catch (error: any) {
+      console.error("Error sending follow-up:", error);
+      showToast("Error", `Failed to send follow-up: ${error.message}`, "error");
+    } finally {
+      setIsProcessingFollowUp(false);
+    }
+  };
+
   useEffect(() => {
     // Height update logic
     const updateDimensions = () => {
@@ -240,6 +278,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
 
         // Reset other states
         refetch()
+        setConversationHistory([]); // Clear conversation history on reset
 
         // After a small delay, clear the resetting state
         setTimeout(() => {
@@ -254,6 +293,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
         setSpaceComplexityData(null)
         setCustomContent(null)
         setAudioResult(null)
+        setConversationHistory([]); // Clear conversation history
 
         // Start audio recording from user's microphone
         try {
@@ -379,7 +419,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
       resizeObserver.disconnect()
       cleanupFunctions.forEach((cleanup) => cleanup())
     }
-  }, [isTooltipVisible, tooltipHeight])
+  }, [isTooltipVisible, tooltipHeight, queryClient, setView, refetch])
 
   useEffect(() => {
     setProblemStatementData(
@@ -557,10 +597,72 @@ const Solutions: React.FC<SolutionsProps> = ({ setView }) => {
               </div>
             </div>
           </div>
+
+          {/* Follow-up section */}
+          {solutionData && !isResetting && (
+            <div className="mt-6 pt-4 border-t border-white/20">
+              {/* Optional: <h3 className="text-sm font-semibold text-white mb-3">Conversation:</h3> */}
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
+                {conversationHistory.map((entry, index) => (
+                  <div key={index} className={`flex ${entry.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[75%] p-3 rounded-xl text-xs shadow ${
+                        entry.speaker === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-600 text-gray-100'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{entry.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {!showFollowUpInput ? (
+                <button
+                  onClick={() => setShowFollowUpInput(true)}
+                  className="w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md text-xs transition-colors duration-150 mt-3" // Added mt-3
+                  disabled={isProcessingFollowUp}
+                >
+                  {isProcessingFollowUp ? "AI is Responding..." : "Ask Follow-up"}
+                </button>
+              ) : (
+                <div className="space-y-2 mt-3"> {/* Added mt-3 */}
+                  <textarea
+                    value={followUpInput}
+                    onChange={(e) => setFollowUpInput(e.target.value)}
+                    placeholder="Type your follow-up question here..."
+                    className="w-full p-2 rounded-md bg-black/70 border border-white/20 text-white text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    disabled={isProcessingFollowUp}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => {
+                        setShowFollowUpInput(false);
+                        setFollowUpInput("");
+                      }}
+                      className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1.5 px-3 rounded-md text-xs transition-colors duration-150"
+                      disabled={isProcessingFollowUp}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSendFollowUp}
+                      className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1.5 px-3 rounded-md text-xs transition-colors duration-150"
+                      disabled={isProcessingFollowUp || followUpInput.trim() === ""}
+                    >
+                      {isProcessingFollowUp ? "Sending..." : "Send"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </>
-  )
+  );
 }
 
-export default Solutions
+export default Solutions;

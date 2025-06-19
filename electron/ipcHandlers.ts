@@ -106,4 +106,35 @@ export function initializeIpcHandlers(appState: AppState): void {
   ipcMain.handle("quit-app", () => {
     app.quit()
   })
+
+  ipcMain.handle("set-custom-prompt", async (event, prompt: string) => {
+    try {
+      appState.setCustomPrompt(prompt);
+      // console.log(`IPC: Custom prompt received and set: "${prompt}"`); // Optional: for logging via main process
+      return { success: true }; // Or simply return; if no specific return value is needed by renderer
+    } catch (error) {
+      console.error("Error setting custom prompt via IPC:", error);
+      return { success: false, error: error.message }; // Propagate error if any
+    }
+  });
+
+  // New handler for follow-up questions
+  ipcMain.handle("send-follow-up", async (
+    event,
+    followUpQuestion: string,
+    problemContext: any,
+    solutionContext: any
+  ) => {
+    try {
+      const llmHelper = appState.processingHelper.getLLMHelper();
+      // Assuming generateFollowUp will be a new method in LLMHelper
+      const response = await llmHelper.generateFollowUp(followUpQuestion, problemContext, solutionContext);
+      return response; // This should match Promise<{ text: string } | null>
+    } catch (error) {
+      console.error("Error processing follow-up question via IPC:", error);
+      // Return null or an error structure if the frontend expects it
+      // For now, returning null to align with Promise<{ text: string } | null>
+      return null;
+    }
+  });
 }

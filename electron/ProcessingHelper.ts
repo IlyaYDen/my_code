@@ -22,7 +22,7 @@ export class ProcessingHelper {
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY not found in environment variables")
     }
-    this.llmHelper = new LLMHelper(apiKey)
+    this.llmHelper = new LLMHelper(apiKey, this.appState); // Pass appState here
   }
 
   public async processScreenshots(): Promise<void> {
